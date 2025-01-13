@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+    "errors"
 )
 
 var (
@@ -86,7 +87,7 @@ func ReadHar(reader io.Reader) (*Har, error) {
 
 func (entry entry) BuildRequest() (*http.Request, error) {
 
-	if entry.Response.Error != "" {
+	if entry.Response.Status == 0 || entry.Response.Error != "" {
 		return nil, ErrIncompleteRequest
 	}
 
@@ -133,14 +134,25 @@ func (entry entry) BuildRequest() (*http.Request, error) {
 	return req, nil
 }
 
+var noRedirect = fmt.Errorf("no redirects")
+
 func (entry entry) DoRequest() (*http.Response, error) {
 	req, err := entry.BuildRequest()
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+    client := &http.Client {
+        CheckRedirect: func (req *http.Request, via []*http.Request) error {
+            return noRedirect
+        },
+    }
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+        if errors.Is(err, noRedirect) {
+            return resp, nil
+        } else {
+            return nil, err
+        }
+    }
+    return resp, nil
 }
