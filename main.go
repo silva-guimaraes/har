@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -16,7 +18,7 @@ var (
 	ErrIncompleteRequest = fmt.Errorf("imcomplete request")
 )
 
-type header struct {
+type keyvalue struct {
 	Name, Value string
 }
 
@@ -25,11 +27,11 @@ type entry struct {
 	Request      struct {
 		Method  string
 		Url     string
-		Headers []header
+		Headers []keyvalue
 	}
 	Response struct {
 		Status  int
-		Headers []header
+		Headers []keyvalue
 		Error   string `json:"_error"`
 	}
 	Cookies []struct {
@@ -46,6 +48,7 @@ type entry struct {
 		// Isso deveria ser incluído como o Content-Type?
 		MimeType string
 		Text     []byte
+		Params   []keyvalue
 	}
 }
 
@@ -94,6 +97,12 @@ func (entry entry) BuildRequest() (*http.Request, error) {
 	var body io.Reader = nil
 	if len(entry.PostData.Text) != 0 {
 		body = bytes.NewReader(entry.PostData.Text)
+	} else if len(entry.PostData.Params) > 0 {
+		values := url.Values{}
+		for _, p := range entry.PostData.Params {
+			values.Add(p.Name, p.Value)
+		}
+		body = strings.NewReader(values.Encode())
 	}
 
 	req, err := http.NewRequest(entry.Request.Method, entry.Request.Url, body)
