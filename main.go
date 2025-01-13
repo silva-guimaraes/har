@@ -3,11 +3,11 @@ package har
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
-    "errors"
 )
 
 var (
@@ -141,18 +141,18 @@ func (entry entry) DoRequest() (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-    client := &http.Client {
-        CheckRedirect: func (req *http.Request, via []*http.Request) error {
-            return noRedirect
-        },
-    }
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return noRedirect
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-        if errors.Is(err, noRedirect) {
-            return resp, nil
-        } else {
-            return nil, err
-        }
-    }
-    return resp, nil
+		if errors.Is(err, noRedirect) {
+			return resp, nil
+		} else {
+			return nil, err
+		}
+	}
+	return resp, nil
 }
