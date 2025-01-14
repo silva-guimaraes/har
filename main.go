@@ -166,7 +166,7 @@ func DefaultClient(options *cookiejar.Options) (*http.Client, error) {
 
     client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return noRedirect
+			return NoRedirect
 		},
 		Jar: jar,
 	}
@@ -190,7 +190,7 @@ func (entry Entry) DoRequest(client *http.Client) (*http.Response, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		if errors.Is(err, noRedirect) {
+		if errors.Is(err, NoRedirect) {
 			return resp, nil
 		} else {
 			return nil, err
