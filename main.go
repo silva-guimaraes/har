@@ -1,7 +1,6 @@
 package har
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,13 +21,21 @@ type keyvalue struct {
 	Name, Value string
 }
 
-type entry struct {
+type Entry struct {
 	ResourceType string `json:"_resourceType"`
+    Initiator struct { Type string } `json:"_initiator"`
 	Request      struct {
 		Method  string
 		Url     string
 		Headers []keyvalue
-	}
+        HeadersSize int `json:"headersSize"`
+        BodySize int `json:"bodySize"`
+        PostData struct {
+            MimeType string `json:"mimeType"`
+            Text     string
+            Params   []keyvalue
+        } `json:"postData"`
+    }
 	Response struct {
 		Status  int
 		Headers []keyvalue
@@ -43,27 +50,25 @@ type entry struct {
 		HttpOnly bool
 		Secure   bool
 	}
-	PostData struct {
-		// Algumas requisições aparentam não informar o Content-Type entre os headers.
-		// Isso deveria ser incluído como o Content-Type?
-		MimeType string
-		Text     []byte
-		Params   []keyvalue
-	}
+    Time float32
+    StartedDateTime time.Time `json:"startedDateTime"`
+    Timings struct {
+        Connect float32
+    }
 }
 
 type Har struct {
 	Log struct {
 		Version string
-		Entries []entry
+		Entries []Entry
 	}
 }
 
-func (h *Har) Entries() []entry {
+func (h *Har) Entries() []Entry {
 	return h.Log.Entries
 }
 
-func (e entry) Url() string {
+func (e Entry) Url() string {
 	return e.Request.Url
 }
 
@@ -88,24 +93,28 @@ func ReadHar(reader io.Reader) (*Har, error) {
 	return data, nil
 }
 
-func (entry entry) BuildRequest() (*http.Request, error) {
+func (entry Entry) BuildRequest() (*http.Request, error) {
 
 	if entry.Response.Status == 0 || entry.Response.Error != "" {
 		return nil, ErrIncompleteRequest
 	}
 
-	var body io.Reader = nil
-	if len(entry.PostData.Text) != 0 {
-		body = bytes.NewReader(entry.PostData.Text)
-	} else if len(entry.PostData.Params) > 0 {
+    var (
+        request = entry.Request
+        body io.Reader = nil
+    )
+
+	if len(request.PostData.Text) > 0 {
+		body = strings.NewReader(request.PostData.Text)
+	} else if len(request.PostData.Params) > 0 {
 		values := url.Values{}
-		for _, p := range entry.PostData.Params {
+		for _, p := range request.PostData.Params {
 			values.Add(p.Name, p.Value)
 		}
 		body = strings.NewReader(values.Encode())
 	}
 
-	req, err := http.NewRequest(entry.Request.Method, entry.Request.Url, body)
+	req, err := http.NewRequest(request.Method, request.Url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +133,8 @@ func (entry entry) BuildRequest() (*http.Request, error) {
 			req.Header.Set(h.Name, h.Value)
 		}
 	}
-	if entry.PostData.MimeType != "" {
-		req.Header.Set("Contety-Type", entry.PostData.MimeType)
+	if request.PostData.MimeType != "" {
+		req.Header.Set("Contety-Type", request.PostData.MimeType)
 	}
 
 	for _, cookie := range entry.Cookies {
@@ -145,7 +154,7 @@ func (entry entry) BuildRequest() (*http.Request, error) {
 
 var noRedirect = fmt.Errorf("no redirects")
 
-func (entry entry) DoRequest() (*http.Response, error) {
+func (entry Entry) DoRequest() (*http.Response, error) {
 	req, err := entry.BuildRequest()
 	if err != nil {
 		return nil, err
