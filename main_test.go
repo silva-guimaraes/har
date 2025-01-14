@@ -36,7 +36,7 @@ func TestRun(t *testing.T) {
 		t.Run(fileName, func(t *testing.T) {
 			t.Parallel()
 			for _, entry := range har.Entries() {
-				resp, err := entry.DoRequest()
+				resp, err := entry.DoRequest(nil)
 				if err != nil {
 					if errors.Is(err, ErrIncompleteRequest) {
 						continue

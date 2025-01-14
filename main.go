@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
@@ -23,19 +24,21 @@ type keyvalue struct {
 
 type Entry struct {
 	ResourceType string `json:"_resourceType"`
-    Initiator struct { Type string } `json:"_initiator"`
-	Request      struct {
-		Method  string
-		Url     string
-		Headers []keyvalue
-        HeadersSize int `json:"headersSize"`
-        BodySize int `json:"bodySize"`
-        PostData struct {
-            MimeType string `json:"mimeType"`
-            Text     string
-            Params   []keyvalue
-        } `json:"postData"`
-    }
+	Initiator    struct {
+		Type string
+	} `json:"_initiator"`
+	Request struct {
+		Method      string
+		Url         string
+		Headers     []keyvalue
+		HeadersSize int `json:"headersSize"`
+		BodySize    int `json:"bodySize"`
+		PostData    struct {
+			MimeType string `json:"mimeType"`
+			Text     string
+			Params   []keyvalue
+		} `json:"postData"`
+	}
 	Response struct {
 		Status  int
 		Headers []keyvalue
@@ -50,11 +53,11 @@ type Entry struct {
 		HttpOnly bool
 		Secure   bool
 	}
-    Time float32
-    StartedDateTime time.Time `json:"startedDateTime"`
-    Timings struct {
-        Connect float32
-    }
+	Time            float32
+	StartedDateTime time.Time `json:"startedDateTime"`
+	Timings         struct {
+		Connect float32
+	}
 }
 
 type Har struct {
@@ -99,10 +102,10 @@ func (entry Entry) BuildRequest() (*http.Request, error) {
 		return nil, ErrIncompleteRequest
 	}
 
-    var (
-        request = entry.Request
-        body io.Reader = nil
-    )
+	var (
+		request           = entry.Request
+		body    io.Reader = nil
+	)
 
 	if len(request.PostData.Text) > 0 {
 		body = strings.NewReader(request.PostData.Text)
@@ -152,18 +155,39 @@ func (entry Entry) BuildRequest() (*http.Request, error) {
 	return req, nil
 }
 
-var noRedirect = fmt.Errorf("no redirects")
+var NoRedirect = fmt.Errorf("no redirects permitted")
 
-func (entry Entry) DoRequest() (*http.Response, error) {
+func DefaultClient(options *cookiejar.Options) (*http.Client, error) {
+
+	jar, err := cookiejar.New(options)
+	if err != nil {
+		return nil, err
+	}
+
+    client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return noRedirect
+		},
+		Jar: jar,
+	}
+	return client, nil
+}
+
+func (entry Entry) DoRequest(client *http.Client) (*http.Response, error) {
+
 	req, err := entry.BuildRequest()
 	if err != nil {
 		return nil, err
 	}
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return noRedirect
-		},
+
+	if client == nil {
+        defaultClient, err := DefaultClient(nil)
+        if err != nil {
+            return nil, err
+        }
+        client = defaultClient
 	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		if errors.Is(err, noRedirect) {
@@ -172,5 +196,6 @@ func (entry Entry) DoRequest() (*http.Response, error) {
 			return nil, err
 		}
 	}
+
 	return resp, nil
 }
