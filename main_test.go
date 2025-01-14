@@ -9,12 +9,12 @@ import (
 )
 
 func TestRun(t *testing.T) {
-    files := []string {
-        "docs.mitmproxy.org.har",
-        "google_redirect[25-01-13 12-24-03].har",
-        "tomscii.sig7.se_Archive [25-01-11 15-33-47].har",
-        "null.har",
-    }
+	files := []string{
+		"docs.mitmproxy.org.har",
+		"google_redirect[25-01-13 12-24-03].har",
+		"tomscii.sig7.se_Archive [25-01-11 15-33-47].har",
+		"null.har",
+	}
 
 	for _, fileName := range files {
 
@@ -58,51 +58,50 @@ func TestRun(t *testing.T) {
 	}
 }
 
-
 func testPostData(t *testing.T, h *Har) {
-    for _, entry := range h.Entries() {
-        if entry.Request.Method != "POST" {
-            continue
-        }
-        if entry.Request.PostData.MimeType == "" {
-            t.Log(entry.Url())
-            t.Errorf(`entry.PostData.MimeType == ""`)
-        }
-        if len(entry.Request.PostData.Params) == 0 && len(entry.Request.PostData.Text) == 0 {
-            t.Log(entry.Url())
-            t.Errorf(`len(entry.PostData.Params) == 0 && len(entry.PostData.Text) == 0`)
-        }
-    }
+	for _, entry := range h.Entries() {
+		if entry.Request.Method != "POST" {
+			continue
+		}
+		if entry.Request.PostData.MimeType == "" {
+			t.Log(entry.Url())
+			t.Errorf(`entry.PostData.MimeType == ""`)
+		}
+		if len(entry.Request.PostData.Params) == 0 && len(entry.Request.PostData.Text) == 0 {
+			t.Log(entry.Url())
+			t.Errorf(`len(entry.PostData.Params) == 0 && len(entry.PostData.Text) == 0`)
+		}
+	}
 }
 
-func TestPostData (t *testing.T) {
-    file, err := os.Open(filepath.Join("testdata", "1post.har"))
-    if err != nil {
-        t.Fatal(err)
-    }
-    h, err := ReadHar(file)
-    if err != nil {
-        t.Fatal(err)
-    }
-    testPostData(t, h)
+func TestPostData(t *testing.T) {
+	file, err := os.Open(filepath.Join("testdata", "1post.har"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err := ReadHar(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testPostData(t, h)
 
-    file, err = os.Open(filepath.Join("testdata", "funcionario[25-01-13 10-41-40].har"))
-    if err != nil {
-        t.Fatal(err)
-    }
-    h, err = ReadHar(file)
-    if err != nil {
-        t.Fatal(err)
-    }
-    testPostData(t, h)
+	file, err = os.Open(filepath.Join("testdata", "funcionario[25-01-13 10-41-40].har"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err = ReadHar(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testPostData(t, h)
 
-    file, err = os.Open(filepath.Join("testdata", "funcionario_chrome.har"))
-    if err != nil {
-        t.Fatal(err)
-    }
-    h, err = ReadHar(file)
-    if err != nil {
-        t.Fatal(err)
-    }
-    testPostData(t, h)
+	file, err = os.Open(filepath.Join("testdata", "funcionario_chrome.har"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err = ReadHar(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testPostData(t, h)
 }

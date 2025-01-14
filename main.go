@@ -164,7 +164,7 @@ func DefaultClient(options *cookiejar.Options) (*http.Client, error) {
 		return nil, err
 	}
 
-    client := &http.Client{
+	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return NoRedirect
 		},
@@ -181,11 +181,15 @@ func (entry Entry) DoRequest(client *http.Client) (*http.Response, error) {
 	}
 
 	if client == nil {
-        defaultClient, err := DefaultClient(nil)
-        if err != nil {
-            return nil, err
-        }
-        client = defaultClient
+		defaultClient, err := DefaultClient(nil)
+		if err != nil {
+			return nil, err
+		}
+		client = defaultClient
+	}
+
+	if client.Jar != nil {
+		req.Header.Del("Cookie")
 	}
 
 	resp, err := client.Do(req)
