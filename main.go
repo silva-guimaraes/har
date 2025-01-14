@@ -140,17 +140,17 @@ func (entry Entry) BuildRequest() (*http.Request, error) {
 		req.Header.Set("Contety-Type", request.PostData.MimeType)
 	}
 
-	for _, cookie := range entry.Cookies {
-		c := &http.Cookie{
-			Name:     cookie.Name,
-			Value:    cookie.Value,
-			Secure:   cookie.Secure,
-			HttpOnly: cookie.HttpOnly,
-			Domain:   cookie.Domain,
-			Expires:  cookie.Expires,
-		}
-		req.AddCookie(c)
-	}
+	// for _, cookie := range entry.Cookies {
+	// 	c := &http.Cookie{
+	// 		Name:     cookie.Name,
+	// 		Value:    cookie.Value,
+	// 		Secure:   cookie.Secure,
+	// 		HttpOnly: cookie.HttpOnly,
+	// 		Domain:   cookie.Domain,
+	// 		Expires:  cookie.Expires,
+	// 	}
+	// 	req.AddCookie(c)
+	// }
 
 	return req, nil
 }
